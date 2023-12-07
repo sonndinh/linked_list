@@ -2,6 +2,15 @@ pub mod linked_list {
     use std::rc::Rc;
     use std::cell::RefCell;
 
+    // TODO: Use a trait so that both LinkedList and DoublyLinkedList can share go_to_element
+    trait List {
+        fn get_size(&self) -> usize;
+        fn get_head<T>(&self) -> Option<T>;
+        fn get_tail<T>(&self) -> Option<T>;
+        fn go_to_element<T>(&self, index: usize) -> Option<T>;
+    }
+
+    // Singly linked list
     type Pointer<T> = Rc<RefCell<Node<T>>>;
 
     #[derive(Debug)]
@@ -32,6 +41,18 @@ pub mod linked_list {
                 tail: None,
                 size: 0,
             }
+        }
+
+        fn get_size(&self) -> usize {
+            self.size
+        }
+
+        fn get_head<Pointer<T>>(&self) -> Option<Pointer<T>> {
+            self.head
+        }
+
+        fn get_tail<Pointer<T>>(&self) -> Option<Pointer<T>> {
+            self.tail
         }
 
         pub fn size(&self) -> usize {
@@ -168,7 +189,86 @@ pub mod linked_list {
             }
         }
     }
+
+    // Doubly linked list
+    type DoublyPointer<T> = Rc<RefCell<DoublyNode<T>>>;
+
+    pub struct DoublyNode<T> {
+        val: T,
+        next: Option<DoublyPointer<T>>,
+        prev: Option<DoublyPointer<T>>,
+    }
+
+    impl<T> DoublyNode<T> {
+        fn new(t: T) -> DoublyNode<T> {
+            DoublyNode::<T> {
+                val: t,
+                next: None,
+                prev: None,
+            }
+        }
+    }
+
+    pub struct DoublyLinkedList<T> {
+        head: Option<DoublyPointer<T>>,
+        tail: Option<DoublyPointer<T>>,
+        size: usize,
+    }
+
+    impl<T: std::fmt::Debug> DoublyLinkedList<T> {
+        pub fn new() -> DoublyLinkedList<T> {
+            DoublyLinkedList::<T> {
+                head: None,
+                tail: None,
+                size: 0,
+            }
+        }
+
+        pub fn size(&self) -> usize {
+            self.size
+        }
+
+        pub fn insert_head(&mut self, obj: T) {
+            let node = Rc::new(RefCell::new(DoublyNode::new(obj)));
+            if self.size == 0 {
+                self.tail = Some(Rc::clone(&node));
+            } else {
+                // Preprend the new node to the current head
+                node.borrow_mut().next = Some(Rc::clone(self.head.as_ref().unwrap()));
+                self.head.as_ref().unwrap().borrow_mut().prev = Some(Rc::clone(&node));
+            }
+            self.head = Some(Rc::clone(&node));
+            self.size += 1;
+        }
+
+        pub fn insert_tail(&mut self, obj: T) {
+            let node = Rc::new(RefCell::new(DoublyNode::new(obj)));
+            if self.size == 0 {
+                self.head = Some(Rc::clone(&node));
+            } else {
+                // Append the new node to the current tail
+                node.borrow_mut().prev = Some(Rc::clone(self.tail.as_ref().unwrap()));
+                self.tail.as_ref().unwrap().borrow_mut().next = Some(Rc::clone(&node));
+            }
+            self.tail = Some(Rc::clone(&node));
+            self.size += 1;
+        }
+
+        pub fn insert_at_index(&mut self, _i: usize, _obj: T) {
+
+        }
+
+        pub fn delete_head(&mut self) {
+        }
+
+        pub fn delete_tail(&mut self) {
+        }
+
+        pub fn delete_at_index(&mut self, _i: usize) {
+        }
+    }
 }
+
 
 #[cfg(test)]
 mod tests {
