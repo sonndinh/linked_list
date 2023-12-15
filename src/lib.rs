@@ -2,12 +2,36 @@ pub mod linked_list {
     use std::rc::Rc;
     use std::cell::RefCell;
 
-    // TODO: Use a trait so that both LinkedList and DoublyLinkedList can share go_to_element
-    trait List {
+    // Implemented by LinkedList and DoublyLinkedList
+    pub trait List {
+        type ListNode;
+
         fn get_size(&self) -> usize;
-        fn get_head<T>(&self) -> Option<T>;
-        fn get_tail<T>(&self) -> Option<T>;
-        fn go_to_element<T>(&self, index: usize) -> Option<T>;
+        fn get_head(&self) -> Option<Rc<RefCell<Self::ListNode>>>;
+        fn get_tail(&self) -> Option<Rc<RefCell<Self::ListNode>>>;
+
+        // Go to the element at the given position (zero based).
+        fn go_to_element(&self, pos: usize) -> Option<Rc<RefCell<Self::ListNode>>> {
+            if pos >= self.get_size() {
+                eprintln!("Invalid index: {}. List size: {}", pos, self.get_size());
+                return None;
+            }
+            if pos == 0 {
+                return Some(Rc::clone(self.get_head().as_ref().unwrap()));
+            }
+            if pos == self.get_size() - 1 {
+                return Some(Rc::clone(self.get_tail().as_ref().unwrap()));
+            }
+
+            let mut curr_pos = 0;
+            let mut curr = Rc::clone(self.get_head().as_ref().unwrap());
+            while curr_pos < pos {
+                let tmp = Rc::clone(curr.borrow().next.as_ref().unwrap());
+                curr = Rc::clone(&tmp);
+                curr_pos += 1;
+            }
+            Some(curr)
+        }
     }
 
     // Singly linked list
@@ -34,6 +58,29 @@ pub mod linked_list {
         size: usize,
     }
 
+    impl<T> List for LinkedList<T> {
+        //type ListNode = Pointer<T>;
+        type ListNode = Node<T>;
+
+        fn get_size(&self) -> usize {
+            self.size
+        }
+
+        fn get_head(&self) -> Option<Pointer<T>> {
+            match &self.head {
+                Some(x) => Some(Rc::clone(x)),
+                None => None,
+            }
+        }
+
+        fn get_tail(&self) -> Option<Pointer<T>> {
+            match &self.tail {
+                Some(x) => Some(Rc::clone(x)),
+                None => None,
+            }
+        }
+    }
+
     impl<T: std::fmt::Debug> LinkedList<T> {
         pub fn new() -> LinkedList<T> {
             LinkedList::<T> {
@@ -41,22 +88,6 @@ pub mod linked_list {
                 tail: None,
                 size: 0,
             }
-        }
-
-        fn get_size(&self) -> usize {
-            self.size
-        }
-
-        fn get_head<Pointer<T>>(&self) -> Option<Pointer<T>> {
-            self.head
-        }
-
-        fn get_tail<Pointer<T>>(&self) -> Option<Pointer<T>> {
-            self.tail
-        }
-
-        pub fn size(&self) -> usize {
-            self.size
         }
 
         pub fn insert_head(&mut self, obj: T) {
@@ -79,29 +110,6 @@ pub mod linked_list {
             }
             self.tail = Some(Rc::clone(&node));
             self.size += 1;
-        }
-
-        // Go to the element at the given index.
-        pub fn go_to_element(&self, i: usize) -> Option<Pointer<T>> {
-            if i >= self.size {
-                eprintln!("Invalid index: {}. List size: {}", i, self.size);
-                return None;
-            }
-            if i == 0 {
-                return Some(Rc::clone(self.head.as_ref().unwrap()));
-            }
-            if i == self.size - 1 {
-                return Some(Rc::clone(self.tail.as_ref().unwrap()));
-            }
-
-            let mut curr_idx = 0;
-            let mut curr = Rc::clone(self.head.as_ref().unwrap());
-            while curr_idx < i {
-                let tmp = Rc::clone(curr.borrow().next.as_ref().unwrap());
-                curr = Rc::clone(&tmp);
-                curr_idx += 1;
-            }
-            Some(curr)
         }
 
         // Insert an element to the given index.
@@ -224,10 +232,6 @@ pub mod linked_list {
             }
         }
 
-        pub fn size(&self) -> usize {
-            self.size
-        }
-
         pub fn insert_head(&mut self, obj: T) {
             let node = Rc::new(RefCell::new(DoublyNode::new(obj)));
             if self.size == 0 {
@@ -280,10 +284,10 @@ mod tests {
         list.insert_head(3);
         let content = list.get_at_index(0);
         assert_eq!(content.unwrap(), 3);
-        assert_eq!(list.size(), 1);
+        assert_eq!(list.get_size(), 1);
 
         list.insert_head(2);
-        assert_eq!(list.size(), 2);
+        assert_eq!(list.get_size(), 2);
         assert_eq!(list.get_at_index(0).unwrap(), 2);
         assert_eq!(list.get_at_index(1).unwrap(), 3);
         assert!(list.go_to_element(2).is_none());
@@ -294,7 +298,7 @@ mod tests {
         let mut list = LinkedList::<u32>::new();
         list.insert_tail(5);
         list.insert_tail(6);
-        assert_eq!(list.size(), 2);
+        assert_eq!(list.get_size(), 2);
         assert_eq!(list.get_at_index(0).unwrap(), 5);
         assert_eq!(list.get_at_index(1).unwrap(), 6);
         assert!(list.go_to_element(4).is_none());
@@ -306,11 +310,11 @@ mod tests {
         list.insert_head(3);
         list.insert_head(2);
         list.insert_head(1);
-        assert_eq!(list.size(), 3);
+        assert_eq!(list.get_size(), 3);
         list.delete_head();
-        assert_eq!(list.size(), 2);
+        assert_eq!(list.get_size(), 2);
         list.delete_head();
-        assert_eq!(list.size(), 1);
+        assert_eq!(list.get_size(), 1);
         assert_eq!(list.get_at_index(0).unwrap(), 3);
     }
 
@@ -319,24 +323,24 @@ mod tests {
         let mut list = LinkedList::<i16>::new();
         list.insert_tail(7);
         list.insert_tail(8);
-        assert_eq!(list.size(), 2);
+        assert_eq!(list.get_size(), 2);
         list.delete_tail();
-        assert_eq!(list.size(), 1);
+        assert_eq!(list.get_size(), 1);
         list.delete_tail();
-        assert_eq!(list.size(), 0);
+        assert_eq!(list.get_size(), 0);
         list.delete_tail();
-        assert_eq!(list.size(), 0);
+        assert_eq!(list.get_size(), 0);
     }
 
     #[test]
     fn insert_at_index() {
         let mut list = LinkedList::<i64>::new();
         list.insert_at_index(1, 10); // No-op since index is invalid
-        assert_eq!(list.size(), 0);
+        assert_eq!(list.get_size(), 0);
         list.insert_at_index(0, 10);
         list.insert_at_index(0, 8);
         list.insert_at_index(1, 9);
-        assert_eq!(list.size(), 3);
+        assert_eq!(list.get_size(), 3);
         assert_eq!(list.get_at_index(0).unwrap(), 8);
         assert_eq!(list.get_at_index(1).unwrap(), 9);
         assert_eq!(list.get_at_index(2).unwrap(), 10);
