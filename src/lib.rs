@@ -2,9 +2,14 @@ pub mod linked_list {
     use std::rc::Rc;
     use std::cell::RefCell;
 
-    // Implemented by LinkedList and DoublyLinkedList
+    // Implemented by any linked list node that has a next pointer.
+    pub trait NodeHasNext {
+        fn get_next(&self) -> Option<Rc<RefCell<Self>>>;
+    }
+
+    // Implemented by any linked list that supports forward traversal.
     pub trait List {
-        type ListNode;
+        type ListNode: NodeHasNext;
 
         fn get_size(&self) -> usize;
         fn get_head(&self) -> Option<Rc<RefCell<Self::ListNode>>>;
@@ -26,7 +31,7 @@ pub mod linked_list {
             let mut curr_pos = 0;
             let mut curr = Rc::clone(self.get_head().as_ref().unwrap());
             while curr_pos < pos {
-                let tmp = Rc::clone(curr.borrow().next.as_ref().unwrap());
+                let tmp = Rc::clone(curr.borrow().get_next().as_ref().unwrap());
                 curr = Rc::clone(&tmp);
                 curr_pos += 1;
             }
@@ -41,6 +46,15 @@ pub mod linked_list {
     pub struct Node<T> {
         val: T,
         next: Option<Pointer<T>>,
+    }
+
+    impl<T> NodeHasNext for Node<T> {
+        fn get_next(&self) -> Option<Rc<RefCell<Node<T>>>> {
+            match &self.next {
+                Some(x) => Some(Rc::clone(x)),
+                None => None,
+            }
+        }
     }
 
     impl<T> Node<T> {
