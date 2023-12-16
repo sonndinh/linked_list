@@ -73,7 +73,6 @@ pub mod linked_list {
     }
 
     impl<T> List for LinkedList<T> {
-        //type ListNode = Pointer<T>;
         type ListNode = Node<T>;
 
         fn get_size(&self) -> usize {
@@ -126,21 +125,21 @@ pub mod linked_list {
             self.size += 1;
         }
 
-        // Insert an element to the given index.
-        pub fn insert_at_index(&mut self, i: usize, obj: T) {
-            if i > self.size {
-                eprintln!("Invalid index: {}. List size: {}", i, self.size);
+        // Insert an element at the given index.
+        pub fn insert_at_index(&mut self, index: usize, obj: T) {
+            if index > self.size {
+                eprintln!("Invalid index: {}. List size: {}", index, self.size);
                 return;
             }
 
-            if i == 0 {
+            if index == 0 {
                 return self.insert_head(obj);
             }
-            if i == self.size {
+            if index == self.size {
                 return self.insert_tail(obj);
             }
 
-            let prev = self.go_to_element(i - 1).unwrap();
+            let prev = self.go_to_element(index - 1).unwrap();
             let node = Rc::new(RefCell::new(Node::new(obj)));
             let next = Rc::clone(prev.borrow().next.as_ref().unwrap());
             node.borrow_mut().next = Some(Rc::clone(&next));
@@ -221,6 +220,15 @@ pub mod linked_list {
         prev: Option<DoublyPointer<T>>,
     }
 
+    impl<T> NodeHasNext for DoublyNode<T> {
+        fn get_next(&self) -> Option<Rc<RefCell<DoublyNode<T>>>> {
+            match &self.next {
+                Some(x) => Some(Rc::clone(x)),
+                None => None,
+            }
+        }
+    }
+
     impl<T> DoublyNode<T> {
         fn new(t: T) -> DoublyNode<T> {
             DoublyNode::<T> {
@@ -235,6 +243,28 @@ pub mod linked_list {
         head: Option<DoublyPointer<T>>,
         tail: Option<DoublyPointer<T>>,
         size: usize,
+    }
+
+    impl<T> List for DoublyLinkedList<T> {
+        type ListNode = DoublyNode<T>;
+
+        fn get_size(&self) -> usize {
+            self.size
+        }
+
+        fn get_head(&self) -> Option<DoublyPointer<T>> {
+            match &self.head {
+                Some(x) => Some(Rc::clone(x)),
+                None => None,
+            }
+        }
+
+        fn get_tail(&self) -> Option<DoublyPointer<T>> {
+            match &self.tail {
+                Some(x) => Some(Rc::clone(x)),
+                None => None,
+            }
+        }
     }
 
     impl<T: std::fmt::Debug> DoublyLinkedList<T> {
@@ -272,8 +302,28 @@ pub mod linked_list {
             self.size += 1;
         }
 
-        pub fn insert_at_index(&mut self, _i: usize, _obj: T) {
+        // Insert an element at the given index
+        pub fn insert_at_index(&mut self, index: usize, obj: T) {
+            if index > self.size {
+                eprintln!("Invalid index: {}. List size: {}", index, self.size);
+                return;
+            }
 
+            if index == 0 {
+                return self.insert_head(obj);
+            }
+            if index == self.size {
+                return self.insert_tail(obj);
+            }
+
+            let prev = self.go_to_element(index - 1).unwrap();
+            let node = Rc::new(RefCell::new(DoublyNode::new(obj)));
+            let next = Rc::clone(prev.borrow().next.as_ref().unwrap());
+            node.borrow_mut().next = Some(Rc::clone(&next));
+            prev.borrow_mut().next = Some(Rc::clone(&node));
+            node.borrow_mut().prev = Some(Rc::clone(&prev));
+            next.borrow_mut().prev = Some(Rc::clone(&node));
+            self.size += 1;
         }
 
         pub fn delete_head(&mut self) {
