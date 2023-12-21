@@ -4,7 +4,10 @@ pub mod linked_list {
 
     // Implemented by any linked list node that has a next pointer.
     pub trait NodeHasNext {
+        //type T: Copy;
+
         fn get_next(&self) -> Option<Rc<RefCell<Self>>>;
+        //fn get_value(&self) -> Self::T;
     }
 
     // Implemented by any linked list that supports forward traversal.
@@ -37,6 +40,16 @@ pub mod linked_list {
             }
             Some(curr)
         }
+
+        // TODO: reuse this method for both lists.
+        // fn get_at_index(&self, i: usize) -> Option<Self::ListNode::T> {
+        //     match self.go_to_element(i) {
+        //         None => None,
+        //         Some(node) => {
+        //             Some(node.borrow().val)
+        //         },
+        //     }
+        // }
     }
 
     // Singly linked list
@@ -192,6 +205,7 @@ pub mod linked_list {
                 return self.delete_tail();
             }
 
+            // The list has at least 3 elements.
             let to_remove = self.go_to_element(i).unwrap();
             let prior = self.go_to_element(i - 1).unwrap();
             prior.borrow_mut().next = Some(Rc::clone(to_remove.borrow().next.as_ref().unwrap()));
@@ -327,12 +341,75 @@ pub mod linked_list {
         }
 
         pub fn delete_head(&mut self) {
+            if self.size == 0 {
+                return;
+            }
+
+            let head_node = Rc::clone(self.head.as_ref().unwrap());
+            match head_node.borrow().next.as_ref() {
+                None => {
+                    self.head = None;
+                    self.tail = None;
+                },
+                Some(next_node) => {
+                    self.head = Some(Rc::clone(next_node));
+                    next_node.borrow_mut().prev = None;
+                },
+            };
+            self.size -= 1;
         }
 
         pub fn delete_tail(&mut self) {
+            if self.size == 0 {
+                return;
+            }
+
+            let tail_node = Rc::clone(self.tail.as_ref().unwrap());
+            match tail_node.borrow().prev.as_ref() {
+                None => {
+                    self.head = None;
+                    self.tail = None;
+                },
+                Some(prev_node) => {
+                    self.tail = Some(Rc::clone(prev_node));
+                    prev_node.borrow_mut().next = None;
+                },
+            };
+            self.size -= 1;
         }
 
-        pub fn delete_at_index(&mut self, _i: usize) {
+        pub fn delete_at_index(&mut self, i: usize) {
+            if i >= self.size {
+                eprintln!("Invalid index: {}. List size: {}", i, self.size);
+                return;
+            }
+
+            if i == 0 {
+                return self.delete_head();
+            }
+            if i == self.size - 1 {
+                return self.delete_tail();
+            }
+
+            // The list has at least 3 elements.
+            let prev = self.go_to_element(i-1).unwrap();
+            let next = self.go_to_element(i+1).unwrap();
+            prev.borrow_mut().next = Some(Rc::clone(&next));
+            next.borrow_mut().prev = Some(Rc::clone(&prev));
+            self.size -= 1;
+        }
+    }
+
+    // Get the payload of the element at a given index.
+    // Only work when the type of the payload is copyable.
+    impl<T: Copy + std::fmt::Debug> DoublyLinkedList<T> {
+        pub fn get_at_index(&self, i: usize) -> Option<T> {
+            match self.go_to_element(i) {
+                None => None,
+                Some(node) => {
+                    Some(node.borrow().val)
+                },
+            }
         }
     }
 }
@@ -344,6 +421,7 @@ mod tests {
 
     #[test]
     fn insert_head() {
+        // Singly linked list
         let mut list = LinkedList::<i32>::new();
         list.insert_head(3);
         let content = list.get_at_index(0);
@@ -355,10 +433,26 @@ mod tests {
         assert_eq!(list.get_at_index(0).unwrap(), 2);
         assert_eq!(list.get_at_index(1).unwrap(), 3);
         assert!(list.go_to_element(2).is_none());
+
+        // Doubly linked list
+        let mut doubly_list = DoublyLinkedList::<i32>::new();
+        doubly_list.insert_head(7);
+        doubly_list.insert_head(6);
+        doubly_list.insert_head(5);
+        assert_eq!(doubly_list.get_size(), 3);
+        assert_eq!(doubly_list.get_at_index(1).unwrap(), 6);
+        assert_eq!(doubly_list.get_at_index(2).unwrap(), 7);
+        assert_eq!(doubly_list.get_at_index(0).unwrap(), 5);
+        assert!(doubly_list.get_at_index(3).is_none());
+        doubly_list.delete_at_index(1);
+        assert_eq!(doubly_list.get_size(), 2);
+        assert_eq!(doubly_list.get_at_index(0).unwrap(), 5);
+        assert_eq!(doubly_list.get_at_index(1).unwrap(), 7);
     }
 
     #[test]
     fn insert_tail() {
+        // Singly linked list
         let mut list = LinkedList::<u32>::new();
         list.insert_tail(5);
         list.insert_tail(6);
@@ -366,10 +460,25 @@ mod tests {
         assert_eq!(list.get_at_index(0).unwrap(), 5);
         assert_eq!(list.get_at_index(1).unwrap(), 6);
         assert!(list.go_to_element(4).is_none());
+
+        // Doubly linked list
+        let mut doubly_list = DoublyLinkedList::<char>::new();
+        doubly_list.insert_tail('a');
+        doubly_list.insert_tail('b');
+        doubly_list.insert_tail('c');
+        assert_eq!(doubly_list.get_size(), 3);
+        assert_eq!(doubly_list.get_at_index(2).unwrap(), 'c');
+        assert_eq!(doubly_list.get_at_index(1).unwrap(), 'b');
+        assert_eq!(doubly_list.get_at_index(0).unwrap(), 'a');
+        doubly_list.delete_at_index(2);
+        assert_eq!(doubly_list.get_size(), 2);
+        assert_eq!(doubly_list.get_at_index(0).unwrap(), 'a');
+        assert_eq!(doubly_list.get_at_index(1).unwrap(), 'b');
     }
 
     #[test]
     fn delete_head() {
+        // Singly linked list
         let mut list = LinkedList::<i32>::new();
         list.insert_head(3);
         list.insert_head(2);
@@ -380,10 +489,20 @@ mod tests {
         list.delete_head();
         assert_eq!(list.get_size(), 1);
         assert_eq!(list.get_at_index(0).unwrap(), 3);
+
+        // Doubly linked list
+        let mut doubly_list = DoublyLinkedList::<u32>::new();
+        doubly_list.insert_at_index(0, 10);
+        doubly_list.insert_at_index(1, 12);
+        doubly_list.insert_at_index(1, 11);
+        assert_eq!(doubly_list.get_size(), 3);
+        doubly_list.delete_head();
+        assert_eq!(doubly_list.get_size(), 2);
     }
 
     #[test]
     fn delete_tail() {
+        // Singly linked list
         let mut list = LinkedList::<i16>::new();
         list.insert_tail(7);
         list.insert_tail(8);
@@ -394,10 +513,19 @@ mod tests {
         assert_eq!(list.get_size(), 0);
         list.delete_tail();
         assert_eq!(list.get_size(), 0);
+
+        // Doubly linked list
+        let mut doubly_list = DoublyLinkedList::<u16>::new();
+        doubly_list.insert_head(100);
+        doubly_list.insert_head(200);
+        assert_eq!(doubly_list.get_size(), 2);
+        doubly_list.delete_tail();
+        assert_eq!(doubly_list.get_size(), 1);
     }
 
     #[test]
     fn insert_at_index() {
+        // Singly linked list
         let mut list = LinkedList::<i64>::new();
         list.insert_at_index(1, 10); // No-op since index is invalid
         assert_eq!(list.get_size(), 0);
@@ -408,5 +536,15 @@ mod tests {
         assert_eq!(list.get_at_index(0).unwrap(), 8);
         assert_eq!(list.get_at_index(1).unwrap(), 9);
         assert_eq!(list.get_at_index(2).unwrap(), 10);
+
+        // Doubly linked list
+        let mut doubly_list = DoublyLinkedList::<char>::new();
+        doubly_list.insert_at_index(0, 'a');
+        doubly_list.insert_at_index(1, 'b');
+        assert_eq!(doubly_list.get_size(), 2);
+        assert_eq!(doubly_list.get_at_index(1).unwrap(), 'b');
+        doubly_list.delete_tail();
+        assert_eq!(doubly_list.get_at_index(0).unwrap(), 'a');
+        assert!(doubly_list.get_at_index(1).is_none());
     }
 }
