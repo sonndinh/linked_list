@@ -4,10 +4,10 @@ pub mod linked_list {
 
     // Implemented by any linked list node that has a next pointer.
     pub trait NodeHasNext {
-        //type T: Copy;
+        type ValueType: Copy;
 
         fn get_next(&self) -> Option<Rc<RefCell<Self>>>;
-        //fn get_value(&self) -> Self::T;
+        fn get_value(&self) -> Self::ValueType;
     }
 
     // Implemented by any linked list that supports forward traversal.
@@ -41,15 +41,14 @@ pub mod linked_list {
             Some(curr)
         }
 
-        // TODO: reuse this method for both lists.
-        // fn get_at_index(&self, i: usize) -> Option<Self::ListNode::T> {
-        //     match self.go_to_element(i) {
-        //         None => None,
-        //         Some(node) => {
-        //             Some(node.borrow().val)
-        //         },
-        //     }
-        // }
+        fn get_at_index(&self, i: usize) -> Option<<Self::ListNode as NodeHasNext>::ValueType> {
+            match self.go_to_element(i) {
+                None => None,
+                Some(node) => {
+                    Some(node.borrow().get_value())
+                },
+            }
+        }
     }
 
     // Singly linked list
@@ -61,12 +60,18 @@ pub mod linked_list {
         next: Option<Pointer<T>>,
     }
 
-    impl<T> NodeHasNext for Node<T> {
+    impl<T: Copy> NodeHasNext for Node<T> {
+        type ValueType = T;
+
         fn get_next(&self) -> Option<Rc<RefCell<Node<T>>>> {
             match &self.next {
                 Some(x) => Some(Rc::clone(x)),
                 None => None,
             }
+        }
+
+        fn get_value(&self) -> T {
+            self.val
         }
     }
 
@@ -85,7 +90,7 @@ pub mod linked_list {
         size: usize,
     }
 
-    impl<T> List for LinkedList<T> {
+    impl<T: Copy> List for LinkedList<T> {
         type ListNode = Node<T>;
 
         fn get_size(&self) -> usize {
@@ -107,7 +112,7 @@ pub mod linked_list {
         }
     }
 
-    impl<T: std::fmt::Debug> LinkedList<T> {
+    impl<T: Copy + std::fmt::Debug> LinkedList<T> {
         pub fn new() -> LinkedList<T> {
             LinkedList::<T> {
                 head: None,
@@ -213,18 +218,6 @@ pub mod linked_list {
         }
     }
 
-    impl<T: Copy + std::fmt::Debug> LinkedList<T> {
-        // Get the payload of the element at the given index.
-        pub fn get_at_index(&self, i: usize) -> Option<T> {
-            match self.go_to_element(i) {
-                None => None,
-                Some(node) => {
-                    Some(node.borrow().val)
-                }
-            }
-        }
-    }
-
     // Doubly linked list
     type DoublyPointer<T> = Rc<RefCell<DoublyNode<T>>>;
 
@@ -234,12 +227,18 @@ pub mod linked_list {
         prev: Option<DoublyPointer<T>>,
     }
 
-    impl<T> NodeHasNext for DoublyNode<T> {
+    impl<T: Copy> NodeHasNext for DoublyNode<T> {
+        type ValueType = T;
+
         fn get_next(&self) -> Option<Rc<RefCell<DoublyNode<T>>>> {
             match &self.next {
                 Some(x) => Some(Rc::clone(x)),
                 None => None,
             }
+        }
+
+        fn get_value(&self) -> T {
+            self.val
         }
     }
 
@@ -259,7 +258,7 @@ pub mod linked_list {
         size: usize,
     }
 
-    impl<T> List for DoublyLinkedList<T> {
+    impl<T: Copy> List for DoublyLinkedList<T> {
         type ListNode = DoublyNode<T>;
 
         fn get_size(&self) -> usize {
@@ -281,7 +280,7 @@ pub mod linked_list {
         }
     }
 
-    impl<T: std::fmt::Debug> DoublyLinkedList<T> {
+    impl<T: Copy + std::fmt::Debug> DoublyLinkedList<T> {
         pub fn new() -> DoublyLinkedList<T> {
             DoublyLinkedList::<T> {
                 head: None,
@@ -402,16 +401,16 @@ pub mod linked_list {
 
     // Get the payload of the element at a given index.
     // Only work when the type of the payload is copyable.
-    impl<T: Copy + std::fmt::Debug> DoublyLinkedList<T> {
-        pub fn get_at_index(&self, i: usize) -> Option<T> {
-            match self.go_to_element(i) {
-                None => None,
-                Some(node) => {
-                    Some(node.borrow().val)
-                },
-            }
-        }
-    }
+    // impl<T: Copy + std::fmt::Debug> DoublyLinkedList<T> {
+    //     pub fn get_at_index(&self, i: usize) -> Option<T> {
+    //         match self.go_to_element(i) {
+    //             None => None,
+    //             Some(node) => {
+    //                 Some(node.borrow().val)
+    //             },
+    //         }
+    //     }
+    // }
 }
 
 
