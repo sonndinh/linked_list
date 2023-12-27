@@ -1,5 +1,5 @@
-// Implement a singly linked list and a doubly linked list.
-// For now the type of the payload in the nodes must be Copy.
+/// Implement a singly linked list and a doubly linked list.
+/// For now the type of the payload in the nodes must be Copy.
 pub mod common_traits;
 pub mod linked_list;
 pub mod doubly_linked_list;
@@ -137,5 +137,25 @@ mod tests {
         doubly_list.delete_tail();
         assert_eq!(doubly_list.get_at_index(0).unwrap(), 'a');
         assert!(doubly_list.get_at_index(1).is_none());
+    }
+
+    #[derive(Copy, Clone, Debug)]
+    struct Payload(i32, u32);
+
+    #[test]
+    fn copyable_struct() {
+        let mut list = LinkedList::<Payload>::new();
+        list.insert_head(Payload(1, 1));
+        list.insert_head(Payload(2, 2));
+        list.insert_tail(Payload(3, 3));
+        assert_eq!(list.get_size(), 3);
+        let first = list.get_at_index(0).unwrap();
+        assert_eq!(first.0, 2);
+        assert_eq!(first.1, 2);
+        let last = list.get_at_index(2).unwrap();
+        assert_eq!(last.0, 3);
+        assert_eq!(last.1, 3);
+        list.delete_at_index(1);
+        assert_eq!(list.get_size(), 2);
     }
 }

@@ -50,15 +50,15 @@ impl<T: Copy> List for LinkedList<T> {
     }
 
     fn get_head(&self) -> Option<Pointer<T>> {
-        match &self.head {
-            Some(x) => Some(Rc::clone(x)),
+        match self.head {
+            Some(ref x) => Some(Rc::clone(x)),
             None => None,
         }
     }
 
     fn get_tail(&self) -> Option<Pointer<T>> {
-        match &self.tail {
-            Some(x) => Some(Rc::clone(x)),
+        match self.tail {
+            Some(ref x) => Some(Rc::clone(x)),
             None => None,
         }
     }
